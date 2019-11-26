@@ -37,6 +37,7 @@
         <avro.version>1.8.1</avro.version>
         <licenses.version>5.1.0</licenses.version>
         <maven.release.plugin.version>2.5.3</maven.release.plugin.version>
+        <organization.username>confluentinc</organization.username>
     </properties>
 
     <name>kafka-connect-datagen</name>
@@ -178,7 +179,7 @@
                                 <title>Kafka Connect Datagen</title>
                                 <documentationUrl>https://github.com/confluentinc/kafka-connect-datagen/blob/master/README.md</documentationUrl>
                                 <description>For demos only: A Kafka Connect connector for generating mock data, not suitable for production</description>
-                                <ownerUsername>confluentinc</ownerUsername>
+                                <ownerUsername>${organization.username}</ownerUsername>
                                 <ownerType>organization</ownerType>
                                 <ownerName>Confluent, Inc.</ownerName>
                                 <ownerUrl>https://confluent.io/</ownerUrl>
@@ -207,6 +208,63 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <id>remove-avro-converter-class</id>
+                        <configuration>
+                            <outputFile>${project.build.directory}/components/packages/${organization.username}-${project.name}-${project.version}/${organization.username}-${project.name}-${project.version}/lib/kafka-connect-avro-converter-${confluent.version}.jar</outputFile>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <artifactSet>
+                                <includes>
+                                    <include>io.confluent:kafka-connect-avro-converter</include>
+                                </includes>
+                                <excludes>
+                                    <exclude>${project.groupId}:${project.artifactId}</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>io.confluent:kafka-connect-avro-converter</artifact>
+                                    <excludes>
+                                        <exclude>io/confluent/connect/avro/AvroConverter*.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>reassemble-confluent-hub-archive</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/components/packages</outputDirectory>
+                            <finalName>${organization.username}-${project.name}-${project.version}</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <descriptors>
+                                <descriptor>src/main/assembly/confluent-hub-repackage.xml</descriptor>
+                            </descriptors>
+                            <formats>
+                                <format>zip</format>
+                            </formats>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -227,7 +285,7 @@
                                     <arguments>
                                         <!-- Note use of development instead of package so we pick up all dependencies. -->
                                         <argument>-i
-                                            ${project.build.directory}/components/packages/confluentinc-${project.build.finalName}/confluentinc-${project.build.finalName}/lib/
+                                            ${project.build.directory}/components/packages/${organization.username}-${project.build.finalName}/${organization.username}-${project.build.finalName}/lib/
                                         </argument>
                                         <argument>-o ${project.basedir}/licenses</argument>
                                         <argument>-f</argument>
